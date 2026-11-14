@@ -10,7 +10,7 @@
    ========================================================================== */
 
 window.APP_CONFIG = {
-  SUPABASE_URL: 'https://cxiwbgnrbrdufqjraaoo.supabase.co/rest/v1/',
+  SUPABASE_URL: 'https://cxiwbgnrbrdufqjraaoo.supabase.co',
   SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4aXdiZ25yYnJkdWZxanJhYW9vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQzMTc2MTQsImV4cCI6MjEwOTg5MzYxNH0.leUTA9utwWL9ifkbpq3KkeCaegzaROLiFGVK9X3-bGk'
 };
 
