@@ -1,0 +1,54 @@
+# ============================================================
+#  AgriSys - Agriculture Information System (.gitignore)
+#  Keeps the repository clean of OS/editor junk and local files.
+#  NOTE: js/config.js holds only the PUBLIC anon key (safe to
+#  commit). NEVER add the service_role key to this project.
+# ============================================================
+
+# --- Windows junk ---
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# --- macOS / Linux junk ---
+.DS_Store
+.AppleDouble
+.LSOverride
+*~
+
+# --- Editors / IDEs ---
+.vscode/
+.idea/
+*.swp
+*.swo
+.sublime-workspace
+.sublime-project
+
+# --- Local run files ---
+*.log
+npm-debug.log*
+*.local
+
+# --- Node (only if you ever add tooling; the app has no build step) ---
+node_modules/
+package-lock.json
+
+# --- Python scratch (verification scripts only, not part of the app) ---
+__pycache__/
+*.pyc
+
+# --- Temporary / backup copies ---
+*.bak
+*.tmp
+# Word/Excel lock files (e.g. ~$AgriSys Documentation.docx)
+~$*
+*.asd
+*.wbk
+
+# --- Deployment build output (if you ever zip for submission) ---
+dist/
+build/
+*.zip
+*.rar
