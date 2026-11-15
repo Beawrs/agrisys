@@ -2,13 +2,25 @@
 --  AP3 Midterm Project - Agriculture Information System
 --  Seed data (taken from the project's sample data screenshots)
 --
---  Run AFTER supabase/schema.sql. Safe to re-run: existing rows are skipped.
+--  Run AFTER supabase/schema.sql.
+--
+--  RE-RUNNABLE: this script first EMPTIES the five main tables (farmer, farm,
+--  crop, planting, harvest) and then reloads the sample data, so you always
+--  end up with exactly the same records. Any records you added by hand in
+--  those tables are removed. User accounts (profiles) are NOT touched.
 --
 --  Text values from the sample data (e.g. 'Loam', 'Rainfed', 'Grade A') are
 --  stored in lookup tables, so the main tables hold their numeric IDs.
 -- ============================================================================
 
 begin;
+
+-- ---------------------------------------------------------------------------
+-- Clean reload: remove existing sample/test rows (children first is handled
+-- by CASCADE) and restart the ID counters at 1.
+-- ---------------------------------------------------------------------------
+truncate table public.harvest, public.planting, public.crop, public.farm, public.farmer
+  restart identity cascade;
 
 -- ---------------------------------------------------------------------------
 -- Lookup tables
@@ -18,14 +30,14 @@ insert into public.irrigation_type (irrigation_id, irrigation_description) value
   (2, 'Irrigated'),
   (3, 'Drip Irrigation'),
   (4, 'Sprinkler')
-on conflict (irrigation_id) do nothing;
+on conflict (irrigation_id) do update set irrigation_description = excluded.irrigation_description;
 
 insert into public.soil_type (soil_id, soil_description) values
   (1, 'Loam'),
   (2, 'Clay Loam'),
   (3, 'Sandy Loam'),
   (4, 'Clay')
-on conflict (soil_id) do nothing;
+on conflict (soil_id) do update set soil_description = excluded.soil_description;
 
 insert into public.crop_category (category_id, category_description) values
   (1, 'Cereal'),
@@ -33,13 +45,13 @@ insert into public.crop_category (category_id, category_description) values
   (3, 'Fruit'),
   (4, 'Legume'),
   (5, 'Root Crop')
-on conflict (category_id) do nothing;
+on conflict (category_id) do update set category_description = excluded.category_description;
 
 insert into public.growing_season (season_id, season_description) values
   (1, 'Wet Season'),
   (2, 'Dry Season'),
   (3, 'Year Round')
-on conflict (season_id) do nothing;
+on conflict (season_id) do update set season_description = excluded.season_description;
 
 insert into public.planting_status (status_id, status_description) values
   (1, 'Planned'),
@@ -47,14 +59,14 @@ insert into public.planting_status (status_id, status_description) values
   (3, 'Harvested'),
   (4, 'Failed'),
   (5, 'Abandoned')
-on conflict (status_id) do nothing;
+on conflict (status_id) do update set status_description = excluded.status_description;
 
 insert into public.quality_grade (grade_id, grade_description) values
   (1, 'Grade A'),
   (2, 'Grade B'),
   (3, 'Grade C'),
   (4, 'Reject')
-on conflict (grade_id) do nothing;
+on conflict (grade_id) do update set grade_description = excluded.grade_description;
 
 -- IDs 1-5 are the project's example list; 6 covers the sample data's
 -- "High quality harvest".
@@ -65,7 +77,7 @@ insert into public.harvest_remark (remark_id, remark_description) values
   (4, 'Poor Quality'),
   (5, 'Damaged Harvest'),
   (6, 'High Quality Harvest')
-on conflict (remark_id) do nothing;
+on conflict (remark_id) do update set remark_description = excluded.remark_description;
 
 -- ---------------------------------------------------------------------------
 -- Crop
@@ -128,11 +140,26 @@ insert into public.farm (farm_id, farmer_id, farm_name, location, area_hectares,
 on conflict (farm_id) do nothing;
 
 -- ---------------------------------------------------------------------------
--- Planting   (only rows 11-28 were visible in the screenshot)
+-- Planting (28 rows)
 -- (id, farm_id, crop_id, planting_date, area_planted, seed_quantity,
 --  expected_harvest_date, status_id)   status: 2 = Growing, 3 = Harvested
+--
+-- Rows 1-10: farm, crop, dates, area and status are copied from the sample
+-- planting list. Their seed_quantity was NOT visible in any screenshot, so
+-- the values marked "VERIFY" continue the repeating 10,15,...,45 pattern of
+-- rows 11-28. Compare them with the real table and correct them if needed.
 -- ---------------------------------------------------------------------------
 insert into public.planting (planting_id, farm_id, crop_id, planting_date, area_planted, seed_quantity, expected_harvest_date, status_id) values
+  (1,  1,  1,  '2026-01-15', 1.00, 10.00, '2026-05-10', 3),  -- VERIFY seed_quantity
+  (2,  2,  2,  '2026-01-20', 1.20, 15.00, '2026-04-29', 3),  -- VERIFY seed_quantity
+  (3,  3,  3,  '2026-01-25', 0.80, 20.00, '2026-04-24', 3),  -- VERIFY seed_quantity
+  (4,  4,  4,  '2026-02-01', 0.90, 25.00, '2026-05-11', 3),  -- VERIFY seed_quantity
+  (5,  5,  5,  '2026-02-05', 1.50, 30.00, '2026-12-01', 3),  -- VERIFY seed_quantity
+  (6,  6,  1,  '2026-02-10', 0.60, 35.00, '2026-06-05', 3),  -- VERIFY seed_quantity
+  (7,  7,  2,  '2026-02-15', 1.10, 40.00, '2026-05-25', 3),  -- VERIFY seed_quantity
+  (8,  8,  3,  '2026-02-20', 0.70, 45.00, '2026-05-20', 3),  -- VERIFY seed_quantity
+  (9,  9,  4,  '2026-02-25', 0.85, 10.00, '2026-06-04', 3),  -- VERIFY seed_quantity
+  (10, 10, 6,  '2026-03-01', 1.30, 15.00, '2026-07-29', 3),  -- VERIFY seed_quantity
   (11, 11, 1,  '2026-02-09', 0.50, 20.00, '2026-06-04', 3),
   (12, 12, 2,  '2026-02-12', 0.60, 25.00, '2026-05-23', 3),
   (13, 13, 3,  '2026-02-15', 0.70, 30.00, '2026-05-16', 3),
@@ -154,12 +181,21 @@ insert into public.planting (planting_id, farm_id, crop_id, planting_date, area_
 on conflict (planting_id) do nothing;
 
 -- ---------------------------------------------------------------------------
--- Harvest   (only rows 11-20 are loaded here: harvests 1-10 belong to
---            plantings 1-10, which were not visible in the screenshot)
+-- Harvest (20 rows, one per planting 1-20)
 -- grade: 1 = A, 2 = B, 3 = C
 -- remark: 6 = High quality harvest, 1 = Good harvest, 2 = Acceptable quality
 -- ---------------------------------------------------------------------------
 insert into public.harvest (harvest_id, planting_id, harvest_date, quantity_kg, selling_price_per_kg, grade_id, remark_id) values
+  (1,  1,  '2026-05-07',  900.00, 22.00, 1, 6),
+  (2,  2,  '2026-04-25', 1025.00, 25.50, 2, 1),
+  (3,  3,  '2026-04-18', 1150.00, 29.00, 3, 2),
+  (4,  4,  '2026-05-01', 1275.00, 32.50, 1, 6),
+  (5,  5,  '2026-11-20', 1400.00, 36.00, 2, 1),
+  (6,  6,  '2026-06-26', 1525.00, 39.50, 3, 2),
+  (7,  7,  '2026-05-20', 1650.00, 43.00, 1, 6),
+  (8,  8,  '2026-09-30', 1775.00, 46.50, 2, 1),
+  (9,  9,  '2026-06-05', 1900.00, 22.00, 3, 2),
+  (10, 10, '2026-05-04', 2025.00, 25.50, 1, 6),
   (11, 11, '2026-06-06', 2150.00, 29.00, 2, 1),
   (12, 12, '2026-05-25', 2275.00, 32.50, 3, 2),
   (13, 13, '2026-05-18', 2400.00, 36.00, 1, 6),
