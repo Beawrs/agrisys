@@ -1,8 +1,7 @@
 # ============================================================
 #  AgriSys - Agriculture Information System (.gitignore)
 #  Keeps the repository clean of OS/editor junk and local files.
-#  NOTE: js/config.js holds only the PUBLIC anon key (safe to
-#  commit). NEVER add the service_role key to this project.
+#  Local PHP environment files may contain database credentials.
 # ============================================================
 
 # --- Windows junk ---
@@ -30,6 +29,9 @@ $RECYCLE.BIN/
 *.log
 npm-debug.log*
 *.local
+.env
+.env.*
+!.env.example
 
 # --- Node (only if you ever add tooling; the app has no build step) ---
 node_modules/

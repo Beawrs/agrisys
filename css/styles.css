@@ -685,6 +685,8 @@ textarea.form-control { min-height: 88px; }
   padding: 40px 28px;
 }
 
+.auth-mobile-brand { display: none; }
+
 .auth-card { width: 100%; max-width: 400px; }
 .auth-card h2 { font-size: 26px; margin-bottom: 6px; }
 .auth-card .auth-sub { color: var(--muted); font-size: 13.5px; margin-bottom: 26px; }
@@ -812,6 +814,21 @@ textarea.form-control { min-height: 88px; }
   .welcome h2 { font-size: 19px; }
   .panel-head { padding: 15px 16px; }
   .panel-body { padding: 16px; }
+  .auth-panel { flex-direction: column; gap: 20px; padding: 28px 20px; }
+  .auth-mobile-brand { display: flex; align-items: center; gap: 12px; }
+  .auth-mobile-brand .brand-text strong { color: var(--green-900); }
+  .auth-mobile-brand .brand-text span { color: var(--muted); letter-spacing: .08em; }
+  .auth-card {
+    max-width: 420px;
+    padding: 26px 22px;
+    background: rgba(255, 255, 255, .94);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: var(--shadow-md);
+  }
+  .auth-card h2 { font-size: 23px; }
+  .auth-card .auth-sub { margin-bottom: 20px; }
+  .auth-foot { margin-top: 20px; font-size: 10.5px; }
 }
 
 @media (max-width: 480px) {
@@ -819,6 +836,8 @@ textarea.form-control { min-height: 88px; }
   .page-content { padding: 16px 13px 30px; }
   .topbar { padding: 8px 13px; min-height: 60px; }
   .topbar-title h1 { font-size: 16px; }
+  .auth-panel { padding: 20px 16px; }
+  .auth-card { padding: 22px 18px; }
 }
 
 /* --------------------------------------------------------------------------

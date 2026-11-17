@@ -1,0 +1,99 @@
+<?php
+require_once __DIR__ . '/includes/bootstrap.php';
+Auth::requirePage();
+?>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Harvest Records · AgriSys</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="css/styles.css" rel="stylesheet">
+</head>
+<body>
+
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <div class="app-body">
+    <header class="topbar" id="topbar"></header>
+
+    <main class="page-content">
+      <div class="page-head">
+        <div>
+          <h1>Harvest Records <span class="badge-soft badge-grey ms-2" id="recordCount">0 records</span></h1>
+          <p>Harvest transactions with quality grade, remarks and estimated value.</p>
+        </div>
+        <div class="spacer"></div>
+        <button class="btn btn-primary" id="addRecordBtn"><i class="bi bi-basket me-1"></i>Add Harvest</button>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="filter-bar w-100" id="filterBar"></div>
+        </div>
+        <div class="table-shell">
+          <table class="table align-middle">
+            <thead id="tableHead"></thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination-bar" id="pagination"></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div class="modal fade" id="recordModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <form id="recordForm">
+        <div class="modal-header">
+          <h5 class="modal-title" id="recordModalTitle">New Harvest Record</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-danger d-none" id="formError" role="alert"></div>
+          <div id="recordFormBody"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="saveRecordBtn">
+            <i class="bi bi-check2 me-1"></i>Save Harvest
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="viewModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="viewModalTitle">Harvest details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="viewModalBody"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/crud.js"></script>
+<script src="js/pages/harvests.js"></script>
+</body>
+</html>

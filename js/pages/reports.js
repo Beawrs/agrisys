@@ -56,23 +56,19 @@
 
   /* --------------------------------------------------------------- data */
   function plantingQuery() {
-    return function (query) {
-      let q = query;
-      if (state.farmId) q = q.eq('farm_id', state.farmId);
-      if (state.from) q = q.gte('planting_date', state.from);
-      if (state.to) q = q.lte('planting_date', state.to);
-      return q;
-    };
+    const filters = [];
+    if (state.farmId) filters.push({ column: 'farm_id', op: 'eq', value: state.farmId });
+    if (state.from) filters.push({ column: 'planting_date', op: 'gte', value: state.from });
+    if (state.to) filters.push({ column: 'planting_date', op: 'lte', value: state.to });
+    return filters;
   }
 
   function harvestQuery() {
-    return function (query) {
-      let q = query;
-      if (state.farmId) q = q.eq('farm_id', state.farmId);
-      if (state.from) q = q.gte('harvest_date', state.from);
-      if (state.to) q = q.lte('harvest_date', state.to);
-      return q;
-    };
+    const filters = [];
+    if (state.farmId) filters.push({ column: 'farm_id', op: 'eq', value: state.farmId });
+    if (state.from) filters.push({ column: 'harvest_date', op: 'gte', value: state.from });
+    if (state.to) filters.push({ column: 'harvest_date', op: 'lte', value: state.to });
+    return filters;
   }
 
   async function loadFarmersAndFarms() {
@@ -122,7 +118,7 @@
 
   async function loadCropsPerFarm() {
     const rows = await API.fetchAll('v_planting', {
-      apply: plantingQuery(),
+      filters: plantingQuery(),
       order: 'planting_date',
       ascending: false
     });
@@ -194,7 +190,7 @@
 
   async function loadPlantingsByStatus() {
     const rows = await API.fetchAll('v_planting', {
-      apply: plantingQuery(),
+      filters: plantingQuery(),
       order: 'planting_date',
       ascending: false
     });
@@ -244,7 +240,7 @@
 
   async function loadHarvestRecords() {
     const rows = await API.fetchAll('v_harvest', {
-      apply: harvestQuery(),
+      filters: harvestQuery(),
       order: 'harvest_id',
       ascending: true
     });
@@ -287,7 +283,7 @@
 
   async function loadHarvestTotal() {
     const rows = await API.fetchAll('v_harvest', {
-      apply: harvestQuery(),
+      filters: harvestQuery(),
       order: 'harvest_date',
       ascending: false
     });
@@ -337,7 +333,7 @@
 
   async function loadHarvestValue() {
     const rows = await API.fetchAll('v_harvest', {
-      apply: harvestQuery(),
+      filters: harvestQuery(),
       order: 'harvest_date',
       ascending: false
     });

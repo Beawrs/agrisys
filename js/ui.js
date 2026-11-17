@@ -240,14 +240,14 @@ window.UI = (function () {
       '<div class="notice-wrap">' +
         '<div class="notice-card">' +
           '<div class="notice-icon tint-gold"><i class="bi bi-plug"></i></div>' +
-          '<h1>Connect Supabase to continue</h1>' +
-          '<p>The application is installed but the database connection is not configured yet. ' +
+          '<h1>Configure the PHP server</h1>' +
+          '<p>The application server is not configured or could not connect to Supabase yet. ' +
           'This only takes a minute:</p>' +
           '<ol>' +
             '<li>Create a free project at <strong>supabase.com</strong>.</li>' +
             '<li>Open <strong>SQL Editor</strong> and run <code>supabase/schema.sql</code>, then <code>supabase/seed.sql</code>.</li>' +
-            '<li>Open <strong>Project Settings → API</strong> and copy the <em>Project URL</em> and <em>anon public</em> key.</li>' +
-            '<li>Paste both values into <code>js/config.js</code> and save the file.</li>' +
+            '<li>Copy <code>.env.example</code> to <code>.env</code> and fill in the Supabase API and database settings.</li>' +
+            '<li>Enable PHP <code>pdo_pgsql</code> and <code>curl</code>, then restart the server.</li>' +
             '<li>Reload this page and sign in.</li>' +
           '</ol>' +
           '<p class="mb-0 text-muted" style="font-size:12px">Full instructions are in <code>docs/SETUP.md</code>.</p>' +
@@ -264,7 +264,7 @@ window.UI = (function () {
           '<h1>Administrator access required</h1>' +
           '<p>Your account does not have permission to open this page. ' +
           'Ask an administrator to change your role, or return to the dashboard.</p>' +
-          '<a class="btn btn-primary" href="dashboard.html"><i class="bi bi-arrow-left me-1"></i>Back to Dashboard</a>' +
+          '<a class="btn btn-primary" href="dashboard.php"><i class="bi bi-arrow-left me-1"></i>Back to Dashboard</a>' +
         '</div>' +
       '</div>';
   }
@@ -276,7 +276,7 @@ window.UI = (function () {
           '<div class="notice-icon tint-red"><i class="bi bi-exclamation-triangle"></i></div>' +
           '<h1>Something went wrong</h1>' +
           '<p>' + esc(message) + '</p>' +
-          '<a class="btn btn-primary" href="dashboard.html">Return to Dashboard</a>' +
+          '<a class="btn btn-primary" href="dashboard.php">Return to Dashboard</a>' +
         '</div>' +
       '</div>';
   }

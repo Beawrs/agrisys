@@ -215,31 +215,30 @@ window.CrudPage = function (config) {
   async function load() {
     setLoading();
     try {
-      let query = db.from(config.view).select('*', { count: 'exact' });
-
-      if (state.search) {
-        query = query.or(API.ilikeOr(config.searchColumns, state.search));
-      }
-
+      const filters = [];
       (config.filters || []).forEach(function (filter) {
         const value = state.filters[filter.id];
         if (!value) return;
-        if (filter.type === 'date') {
-          query = query[filter.op || 'gte'](filter.column, value);
-        } else {
-          query = query.eq(filter.column, value);
-        }
+        filters.push({
+          column: filter.column,
+          op: filter.type === 'date' ? (filter.op || 'gte') : 'eq',
+          value: value
+        });
       });
 
-      query = query.order(state.sort, { ascending: state.ascending, nullsFirst: false });
       const from = (state.page - 1) * state.pageSize;
-      query = query.range(from, from + state.pageSize - 1);
+      const result = await API.query(config.view, {
+        search: state.search,
+        searchColumns: config.searchColumns,
+        filters: filters,
+        order: state.sort,
+        ascending: state.ascending,
+        limit: state.pageSize,
+        offset: from
+      });
 
-      const res = await query;
-      if (res.error) throw res.error;
-
-      state.rows = res.data || [];
-      state.total = res.count || 0;
+      state.rows = result.data;
+      state.total = result.count;
       state.loaded = true;
 
       const pages = Math.max(1, Math.ceil(state.total / state.pageSize));
@@ -450,12 +449,10 @@ window.CrudPage = function (config) {
     UI.setBusy(refs.saveBtn, true);
     try {
       if (state.editing) {
-        const res = await db.from(config.table).update(data).eq(config.pk, state.editing[config.pk]);
-        if (res.error) throw res.error;
+        await API.update(config.table, state.editing[config.pk], data);
         UI.toast(config.singular + ' updated successfully.');
       } else {
-        const res = await db.from(config.table).insert(data);
-        if (res.error) throw res.error;
+        await API.insert(config.table, data);
         UI.toast(config.singular + ' added successfully.');
         state.page = 1;
       }
@@ -503,8 +500,7 @@ window.CrudPage = function (config) {
     if (!accepted) return;
 
     try {
-      const res = await db.from(config.table).delete().eq(config.pk, row[config.pk]);
-      if (res.error) throw res.error;
+      await API.delete(config.table, row[config.pk]);
       UI.toast(config.singular + ' deleted successfully.');
       if (state.rows.length === 1 && state.page > 1) state.page -= 1;
       await load();

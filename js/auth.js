@@ -5,69 +5,58 @@
 window.Auth = (function () {
   'use strict';
 
-  let wired = false;
-
   async function requireAuth(settings) {
     const opts = settings || {};
-    const redirect = opts.redirect || 'index.html';
-
-    if (!window.APP_READY) {
-      UI.setupNotice();
+    const redirect = opts.redirect || 'index.php';
+    let response;
+    try {
+      response = await fetch('api/auth.php?op=session', { cache: 'no-store' });
+    } catch (error) {
+      console.error('[AgriSys] session lookup failed', error);
+      UI.fatal('Cannot reach the PHP application server. Start the app with PHP and try again.');
       return null;
     }
 
-    let session = null;
-    try {
-      const res = await db.auth.getSession();
-      session = res.data ? res.data.session : null;
-    } catch (error) {
-      console.error('[AgriSys] session lookup failed', error);
-    }
-
-    if (!session) {
+    if (response.status === 401) {
       window.location.replace(redirect);
       return null;
     }
 
-    let profile = null;
-    const res = await db
-      .from('profiles')
-      .select('id, email, full_name, role')
-      .eq('id', session.user.id)
-      .maybeSingle();
-
-    if (!res.error && res.data) {
-      profile = res.data;
-    } else {
-      if (res.error) console.warn('[AgriSys] profile lookup failed', res.error);
-      profile = {
-        id: session.user.id,
-        email: session.user.email || '',
-        full_name: session.user.email || 'User',
-        role: 'staff'
-      };
+    if (!response.ok) {
+      UI.fatal('Your session could not be checked. Please reload or sign in again.');
+      return null;
     }
+
+    const payload = await response.json();
+    const profile = payload.user;
+    if (!profile || !profile.id) {
+      UI.fatal('The server returned an invalid user profile.');
+      return null;
+    }
+    API.setCsrfToken(payload.csrfToken);
 
     if (opts.adminOnly && profile.role !== 'admin') {
       UI.accessDenied();
       return null;
     }
 
-    if (!wired) {
-      wired = true;
-      db.auth.onAuthStateChange(function (event) {
-        if (event === 'SIGNED_OUT') window.location.replace(redirect);
-      });
-    }
-
-    return { session: session, user: session.user, profile: profile };
+    return {
+      user: { id: profile.id, email: profile.email },
+      profile: profile,
+      csrfToken: payload.csrfToken
+    };
   }
 
   async function signOut() {
     try {
-      if (window.db) await db.auth.signOut();
+      const response = await fetch('api/auth.php?op=logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ csrfToken: window.APP_CSRF_TOKEN || '' })
+      });
+      if (!response.ok) throw new Error('Sign out could not be completed.');
     } finally {
-      window.location.replace('index.html');
+      window.location.replace('index.php');
     }
   }
 
@@ -82,16 +71,16 @@ window.Layout = (function () {
   'use strict';
 
   const NAV = [
-    { key: 'dashboard', label: 'Dashboard', href: 'dashboard.html', icon: 'bi-speedometer2', subtitle: 'Overview of your farm operations' },
+    { key: 'dashboard', label: 'Dashboard', href: 'dashboard.php', icon: 'bi-speedometer2', subtitle: 'Overview of your farm operations' },
     { section: 'Core Modules' },
-    { key: 'farmers', label: 'Farmers', href: 'farmers.html', icon: 'bi-people', subtitle: 'People registered in the system' },
-    { key: 'farms', label: 'Farms', href: 'farms.html', icon: 'bi-map', subtitle: 'Farm lots, soil and irrigation details' },
-    { key: 'crops', label: 'Crops', href: 'crops.html', icon: 'bi-flower1', subtitle: 'Crop master data and growing seasons' },
-    { key: 'plantings', label: 'Planting Records', href: 'plantings.html', icon: 'bi-calendar-check', subtitle: 'Crop planting transactions' },
-    { key: 'harvests', label: 'Harvest Records', href: 'harvests.html', icon: 'bi-basket', subtitle: 'Harvested quantity and quality' },
+    { key: 'farmers', label: 'Farmers', href: 'farmers.php', icon: 'bi-people', subtitle: 'People registered in the system' },
+    { key: 'farms', label: 'Farms', href: 'farms.php', icon: 'bi-map', subtitle: 'Farm lots, soil and irrigation details' },
+    { key: 'crops', label: 'Crops', href: 'crops.php', icon: 'bi-flower1', subtitle: 'Crop master data and growing seasons' },
+    { key: 'plantings', label: 'Planting Records', href: 'plantings.php', icon: 'bi-calendar-check', subtitle: 'Crop planting transactions' },
+    { key: 'harvests', label: 'Harvest Records', href: 'harvests.php', icon: 'bi-basket', subtitle: 'Harvested quantity and quality' },
     { section: 'Insights' },
-    { key: 'reports', label: 'Reports', href: 'reports.html', icon: 'bi-file-earmark-bar-graph', subtitle: 'Printable and exportable summaries' },
-    { key: 'users', label: 'User Accounts', href: 'users.html', icon: 'bi-shield-lock', subtitle: 'Roles and access control', adminOnly: true }
+    { key: 'reports', label: 'Reports', href: 'reports.php', icon: 'bi-file-earmark-bar-graph', subtitle: 'Printable and exportable summaries' },
+    { key: 'users', label: 'User Accounts', href: 'users.php', icon: 'bi-shield-lock', subtitle: 'Roles and access control', adminOnly: true }
   ];
 
   function render(activeKey, profile) {

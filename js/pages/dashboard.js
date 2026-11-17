@@ -219,23 +219,17 @@
       setText('statHarvests', UI.number(harvestCount));
 
       const [recentPlantings, recentHarvests, statusRows, monthlyRows, harvestRows] = await Promise.all([
-        db.from('v_planting').select('*').order('planting_date', { ascending: false }).limit(6),
-        db.from('v_harvest').select('*').order('harvest_date', { ascending: false }).limit(6),
-        db.from('v_planting_status_summary').select('*').order('status_id'),
-        db.from('v_harvest_monthly').select('*').order('month', { ascending: true }),
-        API.fetchAll('v_harvest', {
-          select: 'quantity_kg, estimated_value'
-        })
+        API.fetchAll('v_planting', { order: 'planting_date', ascending: false, limit: 6 }),
+        API.fetchAll('v_harvest', { order: 'harvest_date', ascending: false, limit: 6 }),
+        API.fetchAll('v_planting_status_summary', { order: 'status_id', ascending: true }),
+        API.fetchAll('v_harvest_monthly', { order: 'month', ascending: true }),
+        API.fetchAll('v_harvest', { select: 'quantity_kg,estimated_value' })
       ]);
 
-      [recentPlantings, recentHarvests, statusRows, monthlyRows].forEach(function (res) {
-        if (res.error) throw res.error;
-      });
-
-      renderRecentPlantings(recentPlantings.data || []);
-      renderRecentHarvests(recentHarvests.data || []);
-      renderStatusChart(statusRows.data || []);
-      renderMonthlyChart(monthlyRows.data || []);
+      renderRecentPlantings(recentPlantings);
+      renderRecentHarvests(recentHarvests);
+      renderStatusChart(statusRows);
+      renderMonthlyChart(monthlyRows);
 
       const totalValue = harvestRows.reduce(function (sum, row) {
         return sum + Number(row.estimated_value || 0);
@@ -246,7 +240,7 @@
       setText('statHarvestNote', UI.number(harvestCount) + ' harvest records · all time');
       setText('statFarmNote', UI.number(farmCount) + ' registered farms');
 
-      const growing = (statusRows.data || []).filter(function (row) {
+      const growing = statusRows.filter(function (row) {
         return row.status_description === 'Growing';
       })[0];
       setText('statGrowing', growing ? UI.number(growing.planting_count) : '0');

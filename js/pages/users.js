@@ -54,9 +54,7 @@
   }
 
   async function reload() {
-    const res = await db.from('profiles').select('*').order('full_name', { ascending: true });
-    if (res.error) throw res.error;
-    profiles = res.data || [];
+    profiles = await API.fetchAll('profiles', { order: 'full_name', ascending: true });
     renderRows();
   }
 
@@ -68,8 +66,7 @@
     const role = select.value;
     UI.setBusy(button, true);
     try {
-      const res = await db.from('profiles').update({ role: role }).eq('id', id);
-      if (res.error) throw res.error;
+      await API.update('profiles', id, { role: role });
       UI.toast('Role updated to ' + (role === 'admin' ? 'Administrator' : 'Staff') + '.');
       await reload();
     } catch (error) {

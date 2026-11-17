@@ -1,20 +1,89 @@
-/* ==========================================================================
-   Data access helpers (Supabase queries + friendly errors)
-   ========================================================================== */
-
+/* Browser-side client for the authenticated PHP/PDO API. */
 window.API = (function () {
   'use strict';
 
   let lookupCache = null;
+  let csrfToken = window.APP_CSRF_TOKEN || '';
+  const dataEndpoint = 'api/data.php';
 
-  function requireDb() {
-    if (!window.db) throw new Error('Supabase is not configured.');
-    return window.db;
+  function setCsrfToken(token) {
+    csrfToken = String(token || '');
+    window.APP_CSRF_TOKEN = csrfToken;
+  }
+
+  async function request(url, options) {
+    const response = await fetch(url, options || {});
+    let payload;
+    try {
+      payload = await response.json();
+    } catch (error) {
+      throw new Error('The server returned an invalid response.');
+    }
+
+    if (!response.ok) {
+      const failure = new Error(payload.error || 'The request could not be completed.');
+      failure.code = payload.code || '';
+      failure.status = response.status;
+      throw failure;
+    }
+    return payload;
+  }
+
+  function queryString(resource, settings) {
+    const opts = settings || {};
+    const params = new URLSearchParams();
+    params.set('resource', resource);
+    params.set('select', opts.select || '*');
+    params.set('order', opts.order || '');
+    params.set('ascending', opts.ascending === false ? 'false' : 'true');
+    params.set('limit', String(opts.limit || 1000));
+    params.set('offset', String(opts.offset || 0));
+    params.set('filters', JSON.stringify(opts.filters || []));
+    params.set('search', opts.search || '');
+    params.set('searchColumns', JSON.stringify(opts.searchColumns || []));
+    return params.toString();
+  }
+
+  async function query(resource, settings) {
+    const payload = await request(dataEndpoint + '?' + queryString(resource, settings));
+    return { data: payload.data || [], count: Number(payload.count || 0) };
+  }
+
+  async function fetchAll(resource, settings) {
+    const opts = settings || {};
+    const chunkSize = Math.min(Number(opts.limit) || 1000, 1000);
+    const rows = [];
+    let offset = Number(opts.offset) || 0;
+
+    for (;;) {
+      const result = await query(resource, Object.assign({}, opts, {
+        limit: chunkSize,
+        offset: offset
+      }));
+      rows.push.apply(rows, result.data);
+      if (result.data.length < chunkSize || opts.limit) break;
+      offset += chunkSize;
+    }
+    return rows;
+  }
+
+  async function mutate(operation, resource, data, id) {
+    const payload = await request(dataEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        op: operation,
+        resource: resource,
+        data: data || {},
+        id: id,
+        csrfToken: csrfToken
+      })
+    });
+    return payload.data || payload;
   }
 
   async function loadLookups(force) {
     if (lookupCache && !force) return lookupCache;
-    const client = requireDb();
 
     const tables = {
       soils: ['soil_type', 'soil_id'],
@@ -29,17 +98,14 @@ window.API = (function () {
     const keys = Object.keys(tables);
     const results = await Promise.all(keys.map(function (key) {
       const spec = tables[key];
-      return client.from(spec[0]).select('*').order(spec[1], { ascending: true });
+      return fetchAll(spec[0], { order: spec[1], ascending: true });
     }));
 
-    const out = {};
-    results.forEach(function (res, index) {
-      if (res.error) throw res.error;
-      out[keys[index]] = res.data || [];
+    lookupCache = {};
+    results.forEach(function (rows, index) {
+      lookupCache[keys[index]] = rows;
     });
-
-    lookupCache = out;
-    return out;
+    return lookupCache;
   }
 
   function options(rows, valueKey, labelKey) {
@@ -48,100 +114,38 @@ window.API = (function () {
     });
   }
 
-  /** Escapes a search term for use inside PostgREST `.or()` / `.ilike()`. */
   function ilikeTerm(term) {
-    return String(term || '')
-      .replace(/[\\"]/g, '')
-      .replace(/[,()%_]/g, ' ')
-      .trim();
+    return String(term || '').replace(/[\\"]/g, '').replace(/[,()%_]/g, ' ').trim();
   }
 
-  function ilikeOr(columns, term) {
-    const clean = ilikeTerm(term);
-    return columns.map(function (column) {
-      return column + '.ilike.%' + clean + '%';
-    }).join(',');
-  }
-
-  /** Fetches every row of a table/view in 1000-row chunks. */
-  async function fetchAll(table, settings) {
-    const opts = settings || {};
-    const client = requireDb();
-    const chunk = 1000;
-    const rows = [];
-    let from = 0;
-
-    for (;;) {
-      let query = client.from(table).select(opts.select || '*').range(from, from + chunk - 1);
-      if (opts.apply) query = opts.apply(query);
-      if (opts.order) {
-        query = query.order(opts.order, { ascending: opts.ascending !== false, nullsFirst: false });
-      }
-      const res = await query;
-      if (res.error) throw res.error;
-      const batch = res.data || [];
-      rows.push.apply(rows, batch);
-      if (batch.length < chunk) break;
-      from += chunk;
-    }
-    return rows;
-  }
-
-  /** Turns a Postgres/PostgREST error into a message safe to show to users. */
   function friendlyError(error) {
     if (!error) return 'The operation could not be completed. Please try again.';
-    const code = String(error.code || '');
-    const message = String(error.message || error.details || '');
-
-    if (code === '23503' || /violates foreign key/i.test(message)) {
-      return 'This record is still linked to other records. Remove or reassign the related records first, then try again.';
-    }
-    if (code === '23505' || /duplicate key/i.test(message)) {
-      return 'A record with the same unique value already exists. Please use a different name or code.';
-    }
-    if (code === '23514' || /violates check constraint/i.test(message)) {
-      return 'One of the values is outside the allowed range. Please review the highlighted fields.';
-    }
-    if (code === '23502' || /null value in column/i.test(message)) {
-      return 'A required value is missing. Please complete all required fields.';
-    }
-    if (code === 'PGRST301' || /jwt|token|session/i.test(message)) {
-      return 'Your session has expired. Please sign in again.';
-    }
-    if (/harvest date/i.test(message)) {
-      return message;
-    }
-    if (/row-level security|permission denied/i.test(message)) {
-      return 'Your account is not allowed to perform this action.';
-    }
-    if (/failed to fetch|networkerror|load failed/i.test(message)) {
-      return 'Cannot reach the database. Check your internet connection and try again.';
-    }
-    if (message.length > 200) {
-      return 'The operation could not be completed. Please check your entries and try again.';
-    }
+    const message = String(error.message || '');
+    if (message.length > 200) return 'The operation could not be completed. Please check your entries and try again.';
     return message || 'The operation could not be completed. Please try again.';
   }
 
-  /** Counts rows in a table/view with optional filters. */
-  async function count(table, apply) {
-    const client = requireDb();
-    let query = client.from(table).select('*', { count: 'exact', head: true });
-    if (apply) query = apply(query);
-    const res = await query;
-    if (res.error) throw res.error;
-    return res.count || 0;
-  }
-
   return {
-    requireDb: requireDb,
+    setCsrfToken: setCsrfToken,
+    query: query,
+    fetchAll: fetchAll,
     loadLookups: loadLookups,
     options: options,
     ilikeTerm: ilikeTerm,
-    ilikeOr: ilikeOr,
-    fetchAll: fetchAll,
     friendlyError: friendlyError,
-    count: count,
+    count: async function (resource, filters) {
+      const result = await query(resource, { limit: 1, filters: filters || [] });
+      return result.count;
+    },
+    insert: function (resource, data) {
+      return mutate('insert', resource, data);
+    },
+    update: function (resource, id, data) {
+      return mutate('update', resource, data, id);
+    },
+    delete: function (resource, id) {
+      return mutate('delete', resource, {}, id);
+    },
     resetLookups: function () { lookupCache = null; }
   };
 })();
